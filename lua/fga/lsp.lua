@@ -14,7 +14,7 @@ function M.setup(opts)
 	if not configs.openfga then
 		configs.openfga = {
 			default_config = {
-				cmd = { "node", opts.lsp_server, "--stdio" },
+				cmd = { opts.lsp_server, "--stdio" },
 				filetypes = { "fga" },
 				root_dir = function(fname)
 					return util.find_git_ancestor(fname)
