@@ -9,7 +9,6 @@ function M.setup(opts)
 	end
 
 	local configs = require("lspconfig.configs")
-	local util = require("lspconfig.util")
 
 	if not configs.openfga then
 		configs.openfga = {
@@ -17,7 +16,7 @@ function M.setup(opts)
 				cmd = { opts.lsp_server, "--stdio" },
 				filetypes = { "fga" },
 				root_dir = function(fname)
-					return util.find_git_ancestor(fname)
+					return vim.fs.dirname(vim.fs.find(".git", { path = fname, upward = true })[1])
 				end,
 				settings = {},
 			},
