@@ -1,10 +1,34 @@
 local M = {}
 
-function M.setup(opts)
-	opts = opts or {}
+local function nvim_at_least(major, minor)
+	return vim.fn.has("nvim-" .. major .. "." .. minor) == 1
+end
 
+local function resolve_cmd(opts)
+	if opts.lsp_cmd then
+		return opts.lsp_cmd
+	end
+
+	-- Legacy: lsp_server option (undocumented, kept for backwards compat)
+	if opts.lsp_server then
+		return { "node", opts.lsp_server, "--stdio" }
+	end
+
+	return nil
+end
+
+local function setup_native(cmd)
+	vim.lsp.config("openfga", {
+		cmd = cmd,
+		filetypes = { "fga" },
+		root_markers = { ".git" },
+	})
+	vim.lsp.enable("openfga")
+end
+
+local function setup_legacy(cmd)
 	if not pcall(require, "lspconfig") then
-		vim.notify("lspconfig is required not installed", vim.log.levels.ERROR)
+		vim.notify("fga.nvim: lspconfig not installed (required for LSP on Neovim < 0.11)", vim.log.levels.ERROR)
 		return
 	end
 
@@ -13,16 +37,30 @@ function M.setup(opts)
 	if not configs.openfga then
 		configs.openfga = {
 			default_config = {
-				cmd = { opts.lsp_server, "--stdio" },
+				cmd = cmd,
 				filetypes = { "fga" },
-				root_dir = function(fname)
-					return vim.fs.dirname(vim.fs.find(".git", { path = fname, upward = true })[1])
-				end,
+				root_dir = util.find_git_ancestor,
+				single_file_support = true,
 				settings = {},
 			},
 		}
 	end
 	configs.openfga.setup({})
+end
+
+function M.setup(opts)
+	opts = opts or {}
+
+	local cmd = resolve_cmd(opts)
+	if not cmd then
+		return
+	end
+
+	if nvim_at_least(0, 11) then
+		setup_native(cmd)
+	else
+		setup_legacy(cmd)
+	end
 end
 
 return M
